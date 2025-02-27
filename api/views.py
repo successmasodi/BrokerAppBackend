@@ -20,28 +20,45 @@ class DepositViewSet(viewsets.ModelViewSet):
         return Deposit.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        deposit = serializer.save(user=self.request.user)
-        balance, created = Balance.objects.get_or_create(user=deposit.user)
-        balance.amount += Decimal(deposit.amount)
-        balance.save()
+        print("Performing create for deposit")
+        try:
+            deposit = serializer.save(user=self.request.user)
+            print(f"Deposit created: {deposit}")
+            balance, created = Balance.objects.get_or_create(user=deposit.user)
+            print(f"Balance retrieved/created: {balance}, created: {created}")
+            balance.amount += Decimal(deposit.amount)
+            balance.save()
+            print(f"Balance updated: {balance.amount}")
+        except serializers.ValidationError as e:
+            print(f"Validation errors: {e.detail}")
+            return Response(e.detail, status=400)
 
     def perform_update(self, serializer):
-        instance = self.get_object()
-        old_amount = instance.amount
-        new_instance = serializer.save(user=self.request.user)
-        balance, created = Balance.objects.get_or_create(user=new_instance.user)
-        new_balance = balance.amount + new_instance.amount - old_amount
-        if new_balance < 0:
-            serializer._errors['amount'] = 'Insufficient balance after update.'
-            return Response(serializer.errors, status=400)
-        balance.amount = new_balance
-        balance.save()
+        print("Performing update for deposit")
+        try:
+            instance = self.get_object()
+            old_amount = instance.amount
+            new_instance = serializer.save(user=self.request.user)
+            print(f"Deposit updated: {new_instance}")
+            balance, created = Balance.objects.get_or_create(user=new_instance.user)
+            print(f"Balance retrieved/created: {balance}, created: {created}")
+            new_balance = balance.amount + Decimal(new_instance.amount) - Decimal(old_amount)
+            balance.amount = new_balance
+            balance.save()
+            print(f"Balance updated: {balance.amount}")
+        except serializers.ValidationError as e:
+            print(f"Validation errors: {e.detail}")
+            return Response(e.detail, status=400)
 
     def perform_destroy(self, instance):
+        print("Performing destroy for deposit")
         balance, created = Balance.objects.get_or_create(user=instance.user)
+        print(f"Balance retrieved/created: {balance}, created: {created}")
         balance.amount -= Decimal(instance.amount)
         balance.save()
+        print(f"Balance updated: {balance.amount}")
         instance.delete()
+        print("Deposit deleted")
 
 class WithdrawalViewSet(viewsets.ModelViewSet):
     serializer_class = WithdrawalSerializer
@@ -53,38 +70,44 @@ class WithdrawalViewSet(viewsets.ModelViewSet):
         return Withdrawal.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        user = self.request.user
-        amount = serializer.validated_data['amount']
+        print("Performing create for withdrawal")
         try:
-            balance = Balance.objects.get(user=user)
-            if amount > balance.amount:
-                serializer._errors['amount'] = 'Insufficient balance for this withdrawal.'
-                return Response(serializer.errors, status=400)
-        except Balance.DoesNotExist:
-            serializer._errors['amount'] = 'Insufficient balance for this withdrawal.'
-            return Response(serializer.errors, status=400)
-
-        withdrawal = serializer.save(user=user)
-        balance.amount -= Decimal(withdrawal.amount)
-        balance.save()
+            withdrawal = serializer.save(user=self.request.user)
+            print(f"Withdrawal created: {withdrawal}")
+            balance = Balance.objects.get(user=withdrawal.user)
+            balance.amount -= Decimal(withdrawal.amount)
+            balance.save()
+            print(f"Balance updated: {balance.amount}")
+        except serializers.ValidationError as e:
+            print(f"Validation errors: {e.detail}")
+            return Response(e.detail, status=400)
 
     def perform_update(self, serializer):
-        instance = self.get_object()
-        old_amount = instance.amount
-        new_instance = serializer.save(user=self.request.user)
-        balance, created = Balance.objects.get_or_create(user=new_instance.user)
-        new_balance = balance.amount - new_instance.amount + old_amount
-        if new_balance < 0:
-            serializer._errors['amount'] = 'Insufficient balance after update.'
-            return Response(serializer.errors, status=400)
-        balance.amount = new_balance
-        balance.save()
+        print("Performing update for withdrawal")
+        try:
+            instance = self.get_object()
+            old_amount = instance.amount
+            new_instance = serializer.save(user=self.request.user)
+            print(f"Withdrawal updated: {new_instance}")
+            balance, created = Balance.objects.get_or_create(user=new_instance.user)
+            print(f"Balance retrieved/created: {balance}, created: {created}")
+            new_balance = balance.amount - Decimal(new_instance.amount) + Decimal(old_amount)
+            balance.amount = new_balance
+            balance.save()
+            print(f"Balance updated: {balance.amount}")
+        except serializers.ValidationError as e:
+            print(f"Validation errors: {e.detail}")
+            return Response(e.detail, status=400)
 
     def perform_destroy(self, instance):
+        print("Performing destroy for withdrawal")
         balance, created = Balance.objects.get_or_create(user=instance.user)
+        print(f"Balance retrieved/created: {balance}, created: {created}")
         balance.amount += Decimal(instance.amount)
         balance.save()
+        print(f"Balance updated: {balance.amount}")
         instance.delete()
+        print("Withdrawal deleted")
 
 class BalanceViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = BalanceSerializer
