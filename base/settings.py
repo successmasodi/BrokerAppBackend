@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'api',
     'authentication',
+    'transactions',
     'rest_framework',
     'drf_yasg',
 ]
