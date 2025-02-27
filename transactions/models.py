@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
 
 class Balance(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
@@ -23,3 +24,12 @@ class Withdrawal(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - Withdrawal - {self.amount}"
+
+    def clean(self):
+        balance = Balance.objects.get(user=self.user)
+        if self.amount > balance.amount:
+            raise ValidationError('Insufficient balance for this withdrawal.')
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
