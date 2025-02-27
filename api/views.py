@@ -32,7 +32,7 @@ class DepositViewSet(viewsets.ModelViewSet):
         balance, created = Balance.objects.get_or_create(user=new_instance.user)
         new_balance = balance.amount + new_instance.amount - old_amount
         if new_balance < 0:
-            serializer._errors['amount'] = ['Insufficient balance after update.']
+            serializer._errors['amount'] = 'Insufficient balance after update.'
             return Response(serializer.errors, status=400)
         balance.amount = new_balance
         balance.save()
@@ -58,7 +58,7 @@ class WithdrawalViewSet(viewsets.ModelViewSet):
         try:
             balance = Balance.objects.get(user=user)
             if amount > balance.amount:
-                serializer._errors['amount'] = ['Insufficient balance for this withdrawal.']
+                serializer._errors['amount'] = 'Insufficient balance for this withdrawal.'
                 return Response(serializer.errors, status=400)
         except Balance.DoesNotExist:
             serializer._errors['amount'] = ['Insufficient balance for this withdrawal.']
