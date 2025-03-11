@@ -2,6 +2,7 @@ from cryptography.fernet import Fernet
 import jwt
 import os
 from dotenv import load_dotenv
+
 load_dotenv()
 
 key = Fernet.generate_key()
@@ -20,5 +21,6 @@ def decrypt_token(enc_token):
         dec_token = cipher_suite.decrypt(enc_token.encode()).decode()
         payload = jwt.decode(dec_token, JWT_SECRET, algorithms=['HS256'])
         return {'payload': payload, 'status': True}
-    except:
+
+    except (jwt.InvalidTokenError, jwt.DecodeError, jwt.InvalidSignatureError, jwt.ExpiredSignatureError):
         return {'status': False}
