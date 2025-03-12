@@ -647,7 +647,7 @@ class UserLoginViewSet(viewsets.ViewSet):
         # Send login success email
         send_mail(
             subject='Login Successful',
-            message=f'Your login to ASLuxeryOriginals.com was successful.',
+            message=f'Welcome to XEX Trading! Your account is now active, and you’re ready to start trading.',
             recipient_list=[email],
             from_email=settings.EMAIL_HOST_USER,
         )
