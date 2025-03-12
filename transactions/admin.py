@@ -15,6 +15,7 @@ class DepositAdmin(admin.ModelAdmin):
     list_per_page = 10
     list_filter = ("is_verified",)
     search_fields = ("user__username",)
+    ordering = ('timestamp','is_verified')
 
     class Meta:
         model = Deposit
