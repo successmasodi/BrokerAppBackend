@@ -569,7 +569,7 @@ class UserSignupViewSet(viewsets.ViewSet):
 
         send_mail(
             subject='Signup successful',
-            message=f'You have finished the signup verification for ASLuxeryOriginals.com. Welcome!',
+            message=f'You have finished the signup verification for Xexplatform. Welcome!',
             recipient_list=[email],
             from_email=settings.EMAIL_HOST_USER,
         )
