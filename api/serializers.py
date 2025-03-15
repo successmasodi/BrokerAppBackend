@@ -33,8 +33,8 @@ class DepositSerializer(serializers.ModelSerializer):
 class WithdrawalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Withdrawal
-        fields = ['id', 'user', 'amount', 'timestamp']
-        read_only_fields = ['id', 'timestamp', 'user']
+        fields = ['id', 'user', 'amount', 'is_verified' , 'timestamp']
+        read_only_fields = ['id', 'timestamp', 'user', 'is_verified']
 
     def validate(self, data):
         user = self.context['request'].user
@@ -45,4 +45,3 @@ class WithdrawalSerializer(serializers.ModelSerializer):
         except Balance.DoesNotExist:
             raise serializers.ValidationError({'error': 'Insufficient balance for this withdrawal.'})
         return data
-
