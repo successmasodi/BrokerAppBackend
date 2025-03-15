@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated,IsAdminUser
+from rest_framework.exceptions import ValidationError
 from django_filters.rest_framework import DjangoFilterBackend
 from transactions.models import Deposit, Withdrawal, Balance
 from .serializers import DepositSerializer, WithdrawalSerializer, BalanceSerializer
@@ -30,63 +31,53 @@ class DepositViewSet(viewsets.ModelViewSet):
             print(f"Validation errors: {e.detail}")
             return Response(e.detail, status=400)
 
-    def perform_update(self, serializer):
+    def update(self, request, *args, **kwargs):
+        """overrides defaults update method
+        only works when deposit is unverified(is_verified=False)"""
+
         print("Performing update for deposit")
         try:
             instance = self.get_object()
-            old_amount = Decimal(instance.amount)
             old_verified = instance.is_verified
 
-            # if the deposit that is to be updated is already verified, Not allowed
-            print(f"PREVIOUS DEPOSIT STATUS {old_verified} ")
-             # If the deposit is already verified, raise an error
+            #  updated deposit is already verified, Not allowed
+            print(f"previous deposit status: {old_verified} ")
             if old_verified:
-                raise serializers.ValidationError("You can't update an already verified deposit.")
+                return Response("You can't update an already verified deposit.",status=status.HTTP_400_BAD_REQUEST)
 
-            new_instance = serializer.save(user=self.request.user)
-            print(f"Deposit updated: {new_instance} , Verified: {new_instance.is_verified}")
+            # overriding deposit update method
+            partial = kwargs.pop('partial', False)
+            serializer = self.get_serializer(instance,data=request.data,partial=partial)
+            if serializer.is_valid():
+                new_instance = serializer.save(user=self.request.user)
+                print(f"Deposit updated: {new_instance}, Verified: {new_instance.is_verified}")
+                return Response(serializer.data,status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            new_amount = Decimal(new_instance.amount)
-            new_verified = new_instance.is_verified
-
-            value = Decimal(0)
-            # a user can only modify unverified deposit
-            if not (old_verified and new_verified):
-                print(not (old_verified or new_verified))
-                value = new_amount - old_amount
-
-            if value != 0:
-                balance, created = Balance.objects.get_or_create(user=new_instance.user)
-                print(f"Balance retrieved/created: {balance}, created: {created}")
-                balance.amount += value
-                balance.save()
-                print(f"Balance updated: {balance.amount}")
-    
         except serializers.ValidationError as e:
             print(f"Validation errors: {e.detail}")
-            return Response(e.detail, status=400)
-
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUES)
 
     def destroy(self, request, *args, **kwargs):
         """ 
         Overwrites the default destroy method. We want to make sure only staff can delete 
-        a verified post and while use can delete their own unverified deposit
+        a verified deposit while a user can delete their own unverified deposit
         """
         print("performing Delete for deposit")
 
         try:
             instance = self.get_object()
 
-            if instance.is_verified and not request.user.is_staff:
-                return Response(
-                            {"detail": "You can't delete an already verified deposit."},
-                            status=status.HTTP_403_FORBIDDEN,
-                        )
-
-            balance = Balance.objects.get(user=instance.user)
-            balance.amount -= Decimal(instance.amount)
-            balance.save()
-            print(f"Balance updated by subtracting {instance.amount}. New balance: {balance.amount}, Deleted by: {request.user.is_staff}")
+            if instance.is_verified:
+                if not request.user.is_staff:
+                    return Response(
+                                {"detail": "You can't delete an already verified deposit."},
+                                status=status.HTTP_403_FORBIDDEN,
+                            )
+                balance = Balance.objects.get(user=instance.user)
+                balance.amount -= Decimal(instance.amount)
+                balance.save()
+                print(f"Balance updated by subtracting {instance.amount}. New balance: {balance.amount}, Deleted by: {request.user.is_staff}")
 
             # Delete the deposit
             instance.delete()
@@ -102,7 +93,7 @@ class DepositViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['GET'] , permission_classes=[IsAdminUser])
     def verify(self, request, pk):
-        """ Verify the status of a deposit by a staff"""
+        """Verify the status of a deposit by a staff/admin"""
         try:
             deposit = Deposit.objects.get(id=pk)
             if deposit.is_verified:
@@ -111,7 +102,7 @@ class DepositViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                     )
 
-            # not verified
+            # make deposit verified
             deposit.is_verified = True
             deposit.save()
             print(f"Deposit verified successfully amount {deposit.amount}")
@@ -141,30 +132,31 @@ class WithdrawalViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         print("Performing create for withdrawal")
+
         try:
             withdrawal = serializer.save(user=self.request.user)
             print(f"Withdrawal created: {withdrawal}")
-            balance = Balance.objects.get(user=withdrawal.user)
-            balance.amount -= Decimal(withdrawal.amount)
-            balance.save()
-            print(f"Balance updated: {balance.amount}")
+
         except serializers.ValidationError as e:
             print(f"Validation errors: {e.detail}")
-            return Response(e.detail, status=400)
+            return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        old_verified = instance.is_verified
+
+        print(f"previous withdrawal status: {old_verified} ")
+        if old_verified:
+            return Response("You can't update an already verified withdraw.",status=status.HTTP_400_BAD_REQUEST)
+
+        return super().update(request, *args, **kwargs)
 
     def perform_update(self, serializer):
         print("Performing update for withdrawal")
         try:
-            instance = self.get_object()
-            old_amount = instance.amount
             new_instance = serializer.save(user=self.request.user)
-            print(f"Withdrawal updated: {new_instance}")
-            balance, created = Balance.objects.get_or_create(user=new_instance.user)
-            print(f"Balance retrieved/created: {balance}, created: {created}")
-            new_balance = balance.amount - Decimal(new_instance.amount) + Decimal(old_amount)
-            balance.amount = new_balance
-            balance.save()
-            print(f"Balance updated: {balance.amount}")
+            print(f"Withdrawal updated: {new_instance}, Verified: {new_instance.is_verified}")
+
         except serializers.ValidationError as e:
             print(f"Validation errors: {e.detail}")
             return Response(e.detail, status=400)
