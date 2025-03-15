@@ -1,9 +1,9 @@
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.db.models import Sum
 from decimal import Decimal
 
-from decimal import  Decimal
 
 class Balance(models.Model):
     user = models.OneToOneField(
@@ -168,15 +168,30 @@ class Position(models.Model):
     STATUS_CHOICES = (("OPEN", "Open"), ("CLOSED", "Closed"))
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    symbol = models.CharField(max_length=10)  # e.g., BTC/USD
+    symbol = models.CharField(max_length=10,null=True, blank=True,help_text="e.g. BTC/USD")
     position_type = models.CharField(max_length=5, choices=POSITION_TYPES)
+    profit_loss =  models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     entry_price = models.DecimalField(max_digits=20, decimal_places=8,null=True, blank=True)
     exit_price = models.DecimalField(max_digits=20, decimal_places=8, null=True, blank=True)
-    lot_size = models.DecimalField(max_digits=20, decimal_places=8)  # Position size in base currency
-    leverage = models.IntegerField(default=1)  # Leverage used (e.g., 10x)
+    lot_size = models.DecimalField(max_digits=20, decimal_places=8, null=True, blank=True)
+    leverage = models.IntegerField(default=1,null=True, blank=True)
     status = models.CharField(max_length=6, choices=STATUS_CHOICES, default="OPEN")
     created_at = models.DateTimeField(auto_now_add=True)
     closed_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"Open Position for {self.user.username} on {self.symbol}"
+
+
+class AccountSummary(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    margin = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    free_margin = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    margin_level = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+
+    def __str__(self):
+        return f"Margin used by {self.user.username}: Margin level:{self.margin_level} free margin:{self.free_margin}"
+
+    class Meta:
+        verbose_name_plural = "Account Summaries"
+
