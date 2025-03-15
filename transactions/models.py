@@ -22,9 +22,6 @@ class Deposit(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ("-timestamp", "is_verified")
-
-    class Meta:
         ordering = ("-timestamp","is_verified")
 
     def __str__(self):
@@ -103,7 +100,6 @@ class Deposit(models.Model):
             super().save(*args, **kwargs)
         except Exception as e:
             raise ValidationError(f"An error occurred: {str(e)}")
-                
 
 
 class Withdrawal(models.Model):
@@ -164,3 +160,23 @@ class Withdrawal(models.Model):
             super().save(*args, **kwargs)
         except Exception as e:
             raise ValidationError(f"An error occurred while saving the withdrawal: {e}")
+
+
+class Position(models.Model):
+
+    POSITION_TYPES = (("LONG", "Long"), ("SHORT", "Short"))
+    STATUS_CHOICES = (("OPEN", "Open"), ("CLOSED", "Closed"))
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    symbol = models.CharField(max_length=10)  # e.g., BTC/USD
+    position_type = models.CharField(max_length=5, choices=POSITION_TYPES)
+    entry_price = models.DecimalField(max_digits=20, decimal_places=8,null=True, blank=True)
+    exit_price = models.DecimalField(max_digits=20, decimal_places=8, null=True, blank=True)
+    lot_size = models.DecimalField(max_digits=20, decimal_places=8)  # Position size in base currency
+    leverage = models.IntegerField(default=1)  # Leverage used (e.g., 10x)
+    status = models.CharField(max_length=6, choices=STATUS_CHOICES, default="OPEN")
+    created_at = models.DateTimeField(auto_now_add=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Open Position for {self.user.username} on {self.symbol}"
