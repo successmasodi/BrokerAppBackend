@@ -3,15 +3,15 @@ from rest_framework import viewsets, serializers
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated,IsAdminUser
-from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db import transaction
-from transactions.models import Deposit, Withdrawal, Balance
-from .serializers import DepositSerializer, WithdrawalSerializer, BalanceSerializer
+from transactions.models import Deposit, Withdrawal, Balance, AccountSummary
+from .serializers import DepositSerializer, WithdrawalSerializer, BalanceSerializer, AccountSummarySerializer
 from .filters import DepositFilter, WithdrawalFilter
 from decimal import Decimal
-from .permissions import IsOwner
+from .permissions import IsOwner, IsAdminOrReadOnly
+
 
 class DepositViewSet(viewsets.ModelViewSet):
     serializer_class = DepositSerializer
@@ -44,20 +44,22 @@ class DepositViewSet(viewsets.ModelViewSet):
             #  updated deposit is already verified, Not allowed
             print(f"previous deposit status: {old_verified} ")
             if old_verified:
-                return Response("You can't update an already verified deposit.",status=status.HTTP_400_BAD_REQUEST)
+                return Response("You can't update an already verified deposit.", status=status.HTTP_400_BAD_REQUEST)
 
             # overriding deposit update method
             partial = kwargs.pop('partial', False)
-            serializer = self.get_serializer(instance,data=request.data,partial=partial)
+            serializer = self.get_serializer(
+                instance, data=request.data, partial=partial)
             if serializer.is_valid():
                 serializer.save(user=self.request.user)
-                print(f"Deposit updated: {serializer.data}, Verified: {serializer.data.get('is_verified')}")
-                return Response(serializer.data,status=status.HTTP_200_OK)
- 
+                print(
+                    f"Deposit updated: {serializer.data}, Verified: {serializer.data.get('is_verified')}")
+                return Response(serializer.data, status=status.HTTP_200_OK)
+
         except serializers.ValidationError as e:
             print(f"Validation errors: {e.detail}")
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
-        
+
         except Exception as e:
             print(f"Unexpected error during update: {str(e)}")
             return Response(
@@ -79,27 +81,28 @@ class DepositViewSet(viewsets.ModelViewSet):
                 if instance.is_verified:
                     if not request.user.is_staff:
                         return Response(
-                                    {"detail": "You can't delete an already verified deposit."},
-                                    status=status.HTTP_403_FORBIDDEN,
-                                )
+                            {"detail": "You can't delete an already verified deposit."},
+                            status=status.HTTP_403_FORBIDDEN,
+                        )
                     balance = Balance.objects.get(user=instance.user)
                     balance.amount -= Decimal(instance.amount)
                     balance.save()
-                    print(f"Balance updated by subtracting {instance.amount}. New balance: {balance.amount}, Deleted by: {request.user.email}")
+                    print(
+                        f"Balance updated by subtracting {instance.amount}. New balance: {balance.amount}, Deleted by: {request.user.email}")
 
                 # Delete the deposit
                 instance.delete()
                 print("Deposit deleted")
 
                 return Response(
-                        {"detail": "Deposit deleted successfully."},
-                        status=status.HTTP_204_NO_CONTENT,
-                    )
+                    {"detail": "Deposit deleted successfully."},
+                    status=status.HTTP_204_NO_CONTENT,
+                )
         except Exception as e:
             print(f"Error during deposit deletion: {e}")
             return Response(e, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['GET'] , permission_classes=[IsAdminUser])
+    @action(detail=True, methods=['GET'], permission_classes=[IsAdminUser])
     def verify(self, request, pk=None):
         """Verify the status of a deposit by a staff/admin"""
         try:
@@ -109,21 +112,25 @@ class DepositViewSet(viewsets.ModelViewSet):
                     return Response(
                         data={"message": "Deposit is already verified!"},
                         status=status.HTTP_400_BAD_REQUEST
-                        )
+                    )
 
                 # make deposit verified
                 deposit.is_verified = True
                 deposit.save()
-                print(f"Deposit verified successfully amount: {deposit.amount}")
+                print(
+                    f"Deposit verified successfully amount: {deposit.amount}")
 
-                balance, created = Balance.objects.get_or_create(user=deposit.user)
+                balance, created = Balance.objects.get_or_create(
+                    user=deposit.user)
                 balance.amount += Decimal(deposit.amount)
                 balance.save()
-                print(f"Balance updated successfully new amount {deposit.amount},first time depositing:{created}")
+                print(
+                    f"Balance updated successfully new amount {deposit.amount},first time depositing:{created}")
 
                 return Response(
-                    data={"message": "Deposit verified successfully", "new balance": balance.amount},
-                    status= status.HTTP_200_OK
+                    data={"message": "Deposit verified successfully",
+                          "new balance": balance.amount},
+                    status=status.HTTP_200_OK
                 )
         except Exception as e:
             print(f"Deposit not verified: {e}")
@@ -160,11 +167,12 @@ class WithdrawalViewSet(viewsets.ModelViewSet):
 
             print(f"previous withdrawal status: {old_verified} ")
             if old_verified:
-                return Response("You can't update an already verified withdraw.",status=status.HTTP_400_BAD_REQUEST)
+                return Response("You can't update an already verified withdraw.", status=status.HTTP_400_BAD_REQUEST)
 
             # Proceed with the update
             partial = kwargs.pop('partial', False)
-            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            serializer = self.get_serializer(
+                instance, data=request.data, partial=partial)
             if serializer.is_valid():
                 serializer.save(user=self.request.user)
                 print(f"Withdrawal updated: {serializer.data}")
@@ -196,27 +204,28 @@ class WithdrawalViewSet(viewsets.ModelViewSet):
                 if instance.is_verified:
                     if not request.user.is_staff:
                         return Response(
-                                    {"detail": "You can't delete an already verified withdrawal."},
-                                    status=status.HTTP_403_FORBIDDEN,
-                                )
+                            {"detail": "You can't delete an already verified withdrawal."},
+                            status=status.HTTP_403_FORBIDDEN,
+                        )
                     balance = Balance.objects.get(user=instance.user)
                     balance.amount += Decimal(instance.amount)
                     balance.save()
-                    print(f"Balance updated by adding {instance.amount}. New balance: {balance.amount}, Deleted by: {request.user.email}")
+                    print(
+                        f"Balance updated by adding {instance.amount}. New balance: {balance.amount}, Deleted by: {request.user.email}")
 
                 # Delete the deposit
                 instance.delete()
                 print("Withdrawal deleted")
 
                 return Response(
-                        {"detail": "Withdrawal deleted successfully."},
-                        status=status.HTTP_204_NO_CONTENT,
-                    )
+                    {"detail": "Withdrawal deleted successfully."},
+                    status=status.HTTP_204_NO_CONTENT,
+                )
         except Exception as e:
             print(f"Error during withdrawal deletion: {e}")
             return Response(e, status=status.HTTP_400_BAD_REQUEST)
-        
-    @action(detail=True, methods=['GET'] , permission_classes=[IsAdminUser])
+
+    @action(detail=True, methods=['GET'], permission_classes=[IsAdminUser])
     def verify(self, request, pk=None):
         """Verify the status of a Withdrawal by a staff/admin"""
         try:
@@ -226,24 +235,26 @@ class WithdrawalViewSet(viewsets.ModelViewSet):
                     return Response(
                         data={"message": "Deposit is initially verified!"},
                         status=status.HTTP_400_BAD_REQUEST
-                        )
+                    )
 
                 # make deposit verified
                 withdrawal.is_verified = True
                 withdrawal.save()
-                print(f"Withdrawal verified successfully amount:{withdrawal.amount}")
+                print(
+                    f"Withdrawal verified successfully amount:{withdrawal.amount}")
 
                 balance = Balance.objects.get(user=withdrawal.user)
                 balance.amount -= Decimal(withdrawal.amount)
                 balance.save()
-                print(f"Balance updated successfully after withdrawal new amount:{withdrawal.amount}")
+                print(
+                    f"Balance updated successfully after withdrawal new amount:{withdrawal.amount}")
 
                 return Response(
-                    data={"message": "Withdrawal verified successfully", 
-                        "verified amount to be withdraw": withdrawal.amount,
-                        "new balance":balance.amount},
+                    data={"message": "Withdrawal verified successfully",
+                          "verified amount to be withdraw": withdrawal.amount,
+                          "new balance": balance.amount},
 
-                    status= status.HTTP_200_OK
+                    status=status.HTTP_200_OK
                 )
         except Exception as e:
             print(f"Error during withdrawal verification: {e}")
@@ -262,7 +273,22 @@ class BalanceViewSet(viewsets.ReadOnlyModelViewSet):
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         if queryset.exists():
-            serializer = self.get_serializer(queryset,many=True)
+            serializer = self.get_serializer(queryset, many=True)
             return Response(serializer.data)
         else:
             return Response({"id": None, "user": request.user.id, "amount": 0})
+
+
+class AccountSummaryViewSet(viewsets.ModelViewSet):
+    """
+    This views shows the admin the account summary including details like
+    profit_loss, opened_position 
+    """
+
+    serializer_class = AccountSummarySerializer
+    permission_classes = (IsAdminOrReadOnly,)
+
+    def get_queryset(self):
+        if self.request.user.is_staff:
+            return AccountSummary.objects.all()
+        return AccountSummary.objects.filter(user=self.request.user)

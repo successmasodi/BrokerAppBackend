@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from transactions.models import Balance, Deposit, Withdrawal
+from transactions.models import Balance, Deposit, Withdrawal, AccountSummary
 from decimal import Decimal
 
 class BalanceSerializer(serializers.ModelSerializer):
@@ -45,3 +45,9 @@ class WithdrawalSerializer(serializers.ModelSerializer):
         except Balance.DoesNotExist:
             raise serializers.ValidationError({'error': 'Insufficient balance for this withdrawal.'})
         return data
+
+class AccountSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AccountSummary
+        fields = ['id', 'user', 'profit_loss', 'opened_position','margin' , 'free_margin','margin_level']
+        read_only_fields = ['id', 'user']
