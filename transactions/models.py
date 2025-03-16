@@ -47,21 +47,20 @@ class Deposit(models.Model):
                 if old_verified and not instance_verified:
                     # we want to subtract from balance because we have added it when it was first verified
                     value -= old_amount
-                    print(f'i am working on 1 block value:{value}')
-                if instance_verified and not old_verified:
+                    print(f'subtract amount:{value} from balance')
+                elif instance_verified and not old_verified:
                     value += instance_amount
-                    print(f'i am working on 2 block value:{value}')
-                if instance_verified and old_verified:
+                    print(f'add verified amount :{value} to balance')
+                elif instance_verified and old_verified:
                     value += instance_amount - old_amount
-                    print(f'i am working on 3 block value:{value}')
+                    print(f'adjust the amount to be added to balance, amount:{value}')
 
-                balance, created = Balance.objects.get_or_create(
-                    user=old_deposit.user)
-                print(
-                    f'updating balance with {value}, new amount:{instance_amount}, old amount : {old_amount}, Balance: {balance} ')
                 if value != 0:
+                    balance, created = Balance.objects.get_or_create(
+                        user=old_deposit.user)
                     balance.amount += value
                     balance.save()
+                    print(f'updating balance with {value},new Balance: {balance.amount} ')
 
             super().save(*args, **kwargs)
         except Exception as e:
@@ -87,45 +86,40 @@ class Withdrawal(models.Model):
             raise ValidationError('Insufficient balance for this withdrawal.')
 
     def save(self, *args, **kwargs):
-        """
-        balance should be deducted when a staff verify a withdrawal.
-        balance should increase when a staff unverify a withdrawal
-        """
-        print("calling the save method of withdrawal")
-        self.clean()
-    
+        """Adjust the balance when a withdrawal is verified or unverified."""
+        print("Calling the save method of Withdrawal")
         try:
             # Ensure that a newly created withdrawal is not marked as verified
             if not self.pk:
                 self.is_verified = False
             else:
                 old_withdrawal = Withdrawal.objects.get(pk=self.pk)
-                balance = Balance.objects.get(user=old_withdrawal.user)
+                old_verified = old_withdrawal.is_verified
+                old_amount = Decimal(old_withdrawal.amount)
 
-                # a withdrawal status changes to verify, deduct balance
-                if self.is_verified and not old_withdrawal.is_verified:
-                    balance.amount -= Decimal(self.amount)
-                    balance.save()
-                    print(
-                        f"Balance deducted after withdrawal is verify: {balance.amount}")
+                instance_verified = self.is_verified
+                instance_amount = Decimal(self.amount)
 
-                # a withdrawal status changes to unverify, increase balance
-                elif not self.is_verified and old_withdrawal.is_verified:
-                    balance.amount += Decimal(self.amount)
+                value = Decimal(0)
+                if old_verified and not instance_verified:
+                    value += old_amount
+                    print(f'add amount :{value} back to balance')
+                elif not old_verified and instance_verified:
+                    value -= instance_amount 
+                    print(f'subtract amount:{value}  from balance')
+                elif old_verified and instance_verified:
+                    value -= instance_amount - old_amount
+                    print(f'adjust the amount to be added to balance, amount:{value}')
+
+                if value != 0:
+                    balance, created = Balance.objects.get_or_create(user=self.user)
+                    balance.amount += value
                     balance.save()
-                    print(
-                        f"Balance increased after withdrawal is unverify: {balance.amount}")
-                
-                # adjust the balance when the withdrawal amount changes.
-                elif self.is_verified and old_withdrawal.is_verified:
-                    balance.amount -= Decimal(self.amount) - Decimal(old_withdrawal.amount) 
-                    balance.save()
-                    print(
-                        f"Balance increased after withdrawal is unverify: {balance.amount}")
+                    print(f"Balance updated by {value}. New balance: {balance.amount}")
 
             super().save(*args, **kwargs)
         except Exception as e:
-            raise ValidationError(f"An error occurred while saving the withdrawal: {e}")
+            raise ValidationError(f"An error occurred while saving the withdrawal: {str(e)}")
 
 
 class AccountSummary(models.Model):
