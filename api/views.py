@@ -72,7 +72,6 @@ class DepositViewSet(viewsets.ModelViewSet):
         Overwrites the default destroy method. We want to make sure only staff can delete 
         a verified deposit while a user can delete their own unverified deposit
         """
-        print("performing Delete for deposit")
 
         try:
             with transaction.atomic():
@@ -92,7 +91,6 @@ class DepositViewSet(viewsets.ModelViewSet):
 
                 # Delete the deposit
                 instance.delete()
-                print("Deposit deleted")
 
                 return Response(
                     {"detail": "Deposit deleted successfully."},
@@ -147,25 +145,20 @@ class WithdrawalViewSet(viewsets.ModelViewSet):
         return Withdrawal.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        print("Performing create for withdrawal")
 
         try:
             withdrawal = serializer.save(user=self.request.user)
-            print(f"Withdrawal created: {withdrawal}")
 
         except serializers.ValidationError as e:
-            print(f"Validation errors: {e.detail}")
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, *args, **kwargs):
         """Only admin/staff can change a verified withdrawal amount from the admin panel"""
-        print("Performing update for withdrawal")
 
         try:
             instance = self.get_object()
             old_verified = instance.is_verified
 
-            print(f"previous withdrawal status: {old_verified} ")
             if old_verified:
                 return Response("You can't update an already verified withdraw.", status=status.HTTP_400_BAD_REQUEST)
 
@@ -179,7 +172,6 @@ class WithdrawalViewSet(viewsets.ModelViewSet):
                 return Response(serializer.data, status=status.HTTP_200_OK)
 
         except serializers.ValidationError as e:
-            print(f"Validation errors: {e.detail}")
             return Response(e.detail, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
@@ -195,7 +187,6 @@ class WithdrawalViewSet(viewsets.ModelViewSet):
         we add to balance for deleted verified withdrawal.
         user can delete their own unverified withdrawal
         """
-        print("performing Delete for withdrawal")
 
         try:
             with transaction.atomic():
@@ -210,12 +201,9 @@ class WithdrawalViewSet(viewsets.ModelViewSet):
                     balance = Balance.objects.get(user=instance.user)
                     balance.amount += Decimal(instance.amount)
                     balance.save()
-                    print(
-                        f"Balance updated by adding {instance.amount}. New balance: {balance.amount}, Deleted by: {request.user.email}")
 
                 # Delete the deposit
                 instance.delete()
-                print("Withdrawal deleted")
 
                 return Response(
                     {"detail": "Withdrawal deleted successfully."},
@@ -240,14 +228,10 @@ class WithdrawalViewSet(viewsets.ModelViewSet):
                 # make deposit verified
                 withdrawal.is_verified = True
                 withdrawal.save()
-                print(
-                    f"Withdrawal verified successfully amount:{withdrawal.amount}")
 
                 balance = Balance.objects.get(user=withdrawal.user)
                 balance.amount -= Decimal(withdrawal.amount)
                 balance.save()
-                print(
-                    f"Balance updated successfully after withdrawal new amount:{withdrawal.amount}")
 
                 return Response(
                     data={"message": "Withdrawal verified successfully",
