@@ -124,11 +124,11 @@ class Withdrawal(models.Model):
 
 class AccountSummary(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    profit_loss =  models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    profit_loss = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     margin = models.DecimalField(max_digits=20, decimal_places=2, default=0)
     free_margin = models.DecimalField(max_digits=20, decimal_places=2, default=0)
     margin_level = models.DecimalField(max_digits=20, decimal_places=2, default=0)
-    opened_position = models.IntegerField(null=True,blank=True)
+    opened_position = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return f"Margin used by {self.user.username}: Margin level:{self.margin_level}"
