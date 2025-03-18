@@ -2,6 +2,7 @@ from rest_framework import serializers
 from transactions.models import Balance, Deposit, Withdrawal, AccountSummary
 from decimal import Decimal
 
+
 class BalanceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Balance
@@ -12,11 +13,11 @@ class BalanceSerializer(serializers.ModelSerializer):
 class DepositSerializer(serializers.ModelSerializer):
     class Meta:
         model = Deposit
-        fields = ['id', 'user', 'amount', 'is_verified','timestamp']
+        fields = ['id', 'user', 'amount', 'is_verified', 'timestamp']
         read_only_fields = ['id', 'timestamp', 'user', 'is_verified']
 
     def validate(self, data):
-        " Validate that ordinary users cannot update verified deposits and amount is greater than 0."
+        """ Validate that ordinary users cannot update verified deposits and amount is greater than 0."""
 
         user = self.context['request'].user
         balance, created = Balance.objects.get_or_create(user=user)
@@ -33,7 +34,7 @@ class DepositSerializer(serializers.ModelSerializer):
 class WithdrawalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Withdrawal
-        fields = ['id', 'user', 'amount', 'is_verified' , 'timestamp']
+        fields = ['id', 'user', 'amount', 'is_verified', 'timestamp']
         read_only_fields = ['id', 'timestamp', 'user', 'is_verified']
 
     def validate(self, data):
@@ -46,8 +47,9 @@ class WithdrawalSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'error': 'Insufficient balance for this withdrawal.'})
         return data
 
+
 class AccountSummarySerializer(serializers.ModelSerializer):
     class Meta:
         model = AccountSummary
-        fields = ['id', 'user', 'profit_loss', 'opened_position','margin' , 'free_margin','margin_level']
+        fields = ['id', 'user', 'profit_loss', 'opened_position', 'margin', 'free_margin', 'margin_level']
         read_only_fields = ['id', 'user']
