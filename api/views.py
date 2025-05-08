@@ -8,7 +8,7 @@ from transactions.models import Deposit, Withdrawal, Balance
 from .serializers import DepositSerializer, WithdrawalSerializer, BalanceSerializer
 from .filters import DepositFilter, WithdrawalFilter
 from decimal import Decimal
-from django.core.exceptions import ValidationError
+
 
 class DepositViewSet(viewsets.ModelViewSet):
     serializer_class = DepositSerializer
