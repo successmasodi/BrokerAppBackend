@@ -20,6 +20,8 @@ class DepositViewSet(viewsets.ModelViewSet):
     permission_classes = [IsOwner]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False) or self.request.user.is_anonymous:
+            return Deposit.objects.none()
         return Deposit.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
@@ -142,6 +144,8 @@ class WithdrawalViewSet(viewsets.ModelViewSet):
     permission_classes = [IsOwner]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False) or self.request.user.is_anonymous:
+            return Withdrawal.objects.none()
         return Withdrawal.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
@@ -250,6 +254,8 @@ class BalanceViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False) or self.request.user.is_anonymous:
+            return Balance.objects.none()
         if self.request.user.is_staff:
             return Balance.objects.all()
         return Balance.objects.filter(user=self.request.user)
@@ -273,6 +279,10 @@ class AccountSummaryViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAdminOrReadOnly,)
 
     def get_queryset(self):
-        if self.request.user.is_staff:
-            return AccountSummary.objects.all()
+        if getattr(self, 'swagger_fake_view', False) or self.request.user.is_anonymous:
+            return AccountSummary.objects.none()
         return AccountSummary.objects.filter(user=self.request.user)
+        
+        # if self.request.user.is_staff:
+        #     return AccountSummary.objects.all()
+        # return AccountSummary.objects.filter(user=self.request.user)
