@@ -266,20 +266,16 @@ class BalanceViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({"id": None, "user": request.user.id, "amount": 0})
 
 
-class AccountSummaryViewSet(viewsets.ModelViewSet):
+class AccountSummaryViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    This views shows the admin the account summary including details like
+    This views shows the user their account summary including details like
     profit_loss, opened_position 
     """
 
     serializer_class = AccountSummarySerializer
-    permission_classes = (IsAdminOrReadOnly,)
+    # permission_classes = (IsAdminOrReadOnly,)
 
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False) or self.request.user.is_anonymous:
             return AccountSummary.objects.none()
         return AccountSummary.objects.filter(user=self.request.user)
-        
-        # if self.request.user.is_staff:
-        #     return AccountSummary.objects.all()
-        # return AccountSummary.objects.filter(user=self.request.user)
