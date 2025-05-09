@@ -44,7 +44,6 @@ class DepositViewSet(viewsets.ModelViewSet):
             old_verified = instance.is_verified
 
             #  updated deposit is already verified, Not allowed
-            print(f"previous deposit status: {old_verified} ")
             if old_verified:
                 return Response("You can't update an already verified deposit.", status=status.HTTP_400_BAD_REQUEST)
 
@@ -256,8 +255,6 @@ class BalanceViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False) or self.request.user.is_anonymous:
             return Balance.objects.none()
-        if self.request.user.is_staff:
-            return Balance.objects.all()
         return Balance.objects.filter(user=self.request.user)
 
     def list(self, request, *args, **kwargs):
