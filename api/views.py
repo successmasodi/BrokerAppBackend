@@ -20,6 +20,8 @@ class DepositViewSet(viewsets.ModelViewSet):
     permission_classes = [IsOwner]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False) or self.request.user.is_anonymous:
+            return Deposit.objects.none()
         return Deposit.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
@@ -42,7 +44,6 @@ class DepositViewSet(viewsets.ModelViewSet):
             old_verified = instance.is_verified
 
             #  updated deposit is already verified, Not allowed
-            print(f"previous deposit status: {old_verified} ")
             if old_verified:
                 return Response("You can't update an already verified deposit.", status=status.HTTP_400_BAD_REQUEST)
 
@@ -142,6 +143,8 @@ class WithdrawalViewSet(viewsets.ModelViewSet):
     permission_classes = [IsOwner]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False) or self.request.user.is_anonymous:
+            return Withdrawal.objects.none()
         return Withdrawal.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
@@ -250,8 +253,8 @@ class BalanceViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        if self.request.user.is_staff:
-            return Balance.objects.all()
+        if getattr(self, 'swagger_fake_view', False) or self.request.user.is_anonymous:
+            return Balance.objects.none()
         return Balance.objects.filter(user=self.request.user)
 
     def list(self, request, *args, **kwargs):
@@ -263,16 +266,16 @@ class BalanceViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({"id": None, "user": request.user.id, "amount": 0})
 
 
-class AccountSummaryViewSet(viewsets.ModelViewSet):
+class AccountSummaryViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    This views shows the admin the account summary including details like
+    This views shows the user their account summary including details like
     profit_loss, opened_position 
     """
 
     serializer_class = AccountSummarySerializer
-    permission_classes = (IsAdminOrReadOnly,)
+    # permission_classes = (IsAdminOrReadOnly,)
 
     def get_queryset(self):
-        if self.request.user.is_staff:
-            return AccountSummary.objects.all()
+        if getattr(self, 'swagger_fake_view', False) or self.request.user.is_anonymous:
+            return AccountSummary.objects.none()
         return AccountSummary.objects.filter(user=self.request.user)
