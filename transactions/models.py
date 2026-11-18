@@ -11,7 +11,7 @@ class Balance(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
     def __str__(self):
-        return f"{self.user.username} - {self.amount}"
+        return f"{self.user.email} - {self.amount}"
 
 
 class Deposit(models.Model):
@@ -25,7 +25,7 @@ class Deposit(models.Model):
         ordering = ("-timestamp","is_verified")
 
     def __str__(self):
-        return f"{self.user.username} - Deposit - {self.amount}"
+        return f"{self.user.email} - Deposit - {self.amount}"
 
     def save(self, *args, **kwargs):
         """increase the balance if deposit is just verified and vice versa"""
@@ -78,7 +78,7 @@ class Withdrawal(models.Model):
         ordering = ("-timestamp", "is_verified")
 
     def __str__(self):
-        return f"{self.user.username} - Withdrawal - {self.amount}"
+        return f"{self.user.email} - Withdrawal - {self.amount}"
 
     def clean(self):
         balance = Balance.objects.get(user=self.user)
@@ -131,7 +131,7 @@ class AccountSummary(models.Model):
     opened_position = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
-        return f"Margin used by {self.user.username}: Margin level:{self.margin_level}"
+        return f"Margin used by {self.user.email}: Margin level:{self.margin_level}"
 
     class Meta:
         verbose_name_plural = "Account Summaries"

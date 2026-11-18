@@ -11,13 +11,13 @@ class BalanceViewSet(ModelViewSet):
     '''
     only super user can access
     filter by timestamp and is verified,
-    search by user username
+    search by user email
     '''
     queryset = Balance.objects.select_related('user')
     permission_classes = [IsStaffOnly]
     serializer_class = ManageBalanceSerializer
     filter_backends = [SearchFilter, OrderingFilter]
-    search_fields = ['user__username']
+    search_fields = ['user__email']
 
 for method in ['list', 'retrieve', 'create', 'partial_update', 'update', 'destroy']:
     BalanceViewSet = method_decorator(name=method, decorator=swagger_auto_schema(tags=['manage']))(BalanceViewSet)
@@ -27,13 +27,13 @@ class DepositViewSet(ModelViewSet):
     '''
     only super user can access
     filter by timestamp and is verified,
-    search by user username
+    search by user email
     '''
     queryset = Deposit.objects.select_related('user')
     permission_classes = [IsStaffOnly]
     serializer_class = ManagerDepositSerializer
     filter_backends = [SearchFilter, OrderingFilter]
-    search_fields = ['user__username']
+    search_fields = ['user__email']
     ordering_fields = ['timestamp', 'is_verified']
 
 for method in ['list', 'retrieve', 'create', 'partial_update', 'update', 'destroy']:
@@ -44,13 +44,13 @@ class WithdrawalViewSet(ModelViewSet):
     '''
     only super user can access
     filter by timestamp and is verified,
-    search by user username
+    search by user email
     '''
     queryset = Withdrawal.objects.select_related('user')
     serializer_class = ManagerWithdrawalSerializer
     permission_classes = [IsStaffOnly]
     filter_backends = [SearchFilter, OrderingFilter]
-    search_fields = ['user__username']
+    search_fields = ['user__email']
     ordering_fields = ['timestamp', 'is_verified']
 
 for method in ['list', 'retrieve', 'create', 'partial_update', 'update', 'destroy']:
@@ -66,7 +66,7 @@ class AccountSummaryViewSet(ModelViewSet):
     serializer_class = ManageAccountSummarySerializer
     permission_classes = [IsStaffOnly]
     filter_backends = [SearchFilter, OrderingFilter]
-    search_fields = ['user__username']
+    search_fields = ['user__email']
     ordering_fields = [ 'opened_position', 'margin', 'opened_position']
 
 for method in ['list', 'retrieve', 'create', 'partial_update', 'update', 'destroy']:

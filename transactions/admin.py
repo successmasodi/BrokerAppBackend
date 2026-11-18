@@ -12,7 +12,7 @@ class DepositAdmin(admin.ModelAdmin):
     list_editable = ("is_verified",)
     list_per_page = 10
     list_filter = ("is_verified",)
-    search_fields = ("user__username",)
+    search_fields = ("user__email",)
     ordering = ('timestamp', 'is_verified')
 
     class Meta:
@@ -25,7 +25,7 @@ class WithdrawalAdmin(admin.ModelAdmin):
     list_editable = ("is_verified",)
     list_per_page = 10
     list_filter = ("is_verified",)
-    search_fields = ("user__username",)
+    search_fields = ("user__email",)
     ordering = ('timestamp', 'is_verified')
 
     class Meta:
@@ -39,7 +39,7 @@ class AccountSummaryAdmin(admin.ModelAdmin):
     list_editable = ("profit_loss", "margin", "free_margin",
                      "margin_level", "opened_position")
     list_per_page = 10
-    search_fields = ("user__username",)
+    search_fields = ("user__email",)
     ordering = ("opened_position", "-free_margin")
 
     class Meta:
