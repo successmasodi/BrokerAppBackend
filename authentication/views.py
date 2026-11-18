@@ -8,7 +8,7 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from django.contrib.auth.hashers import make_password
 from rest_framework.exceptions import AuthenticationFailed
-from .serializers import (UserSignupSerializer, LoginSerializer, PasswordChangeRequestSerializer, \
+from .serializers import (UserSignupSerializer, LoginSerializer, PasswordChangeRequestSerializer,
                           UserProfileSerializer, ForgotPasswordRequestSerializer, UserSignupSerializerResendOTP,
                           UserSignupSerializerOTP, ViewUserProfileSerializer)
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
@@ -66,8 +66,10 @@ class ForgotPasswordViewSet(viewsets.ModelViewSet):
         user = User.objects.filter(email=email).first()
         if not user:
             return Response({"error": "No user found with this email."}, status=status.HTTP_400_BAD_REQUEST)
-        forgot_password_request = ForgotPasswordRequest.objects.filter(user=user).first()
-        expiration_time = forgot_password_request.created_at + datetime.timedelta(minutes=10)
+        forgot_password_request = ForgotPasswordRequest.objects.filter(
+            user=user).first()
+        expiration_time = forgot_password_request.created_at + \
+            datetime.timedelta(minutes=10)
         if timezone.now() > expiration_time:
             return Response({"error": "The reset link has expired. Please request a new one."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -81,7 +83,8 @@ class ForgotPasswordViewSet(viewsets.ModelViewSet):
             from_email=settings.EMAIL_HOST_USER,
         )
 
-        ForgotPasswordRequest.objects.create(user=user, otp=otp, new_password=new_password)
+        ForgotPasswordRequest.objects.create(
+            user=user, otp=otp, new_password=new_password)
 
         return Response({"message": "An OTP has been sent to your email."}, status=status.HTTP_200_OK)
 
@@ -97,14 +100,16 @@ class ForgotPasswordViewSet(viewsets.ModelViewSet):
         if not user:
             return Response({"error": "No user found with this email."}, status=status.HTTP_400_BAD_REQUEST)
 
-        forgot_password_request = ForgotPasswordRequest.objects.filter(user=user).first()
+        forgot_password_request = ForgotPasswordRequest.objects.filter(
+            user=user).first()
         if not forgot_password_request:
             return Response({"error": "No pending forgot password request found."}, status=status.HTTP_400_BAD_REQUEST)
 
         if str(forgot_password_request.otp) != str(otp):
             return Response({"error": "Incorrect OTP."}, status=status.HTTP_400_BAD_REQUEST)
 
-        otp_age = (timezone.now() - forgot_password_request.created_at).total_seconds()
+        otp_age = (timezone.now() -
+                   forgot_password_request.created_at).total_seconds()
         if otp_age > 300:
             return Response({"error": "OTP has expired. Please request a new one."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -135,7 +140,8 @@ class ForgotPasswordViewSet(viewsets.ModelViewSet):
         if not user:
             return Response({"error": "No user found with this email."}, status=status.HTTP_400_BAD_REQUEST)
 
-        forgot_password_request = ForgotPasswordRequest.objects.filter(user=user).first()
+        forgot_password_request = ForgotPasswordRequest.objects.filter(
+            user=user).first()
         if not forgot_password_request:
             return Response({"error": "No pending forgot password request found."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -144,7 +150,8 @@ class ForgotPasswordViewSet(viewsets.ModelViewSet):
         forgot_password_request.otp = otp
 
         # Extend the expiration time by 5 minutes from now
-        forgot_password_request.created_at = timezone.now()  # Reset the creation time to current time
+        # Reset the creation time to current time
+        forgot_password_request.created_at = timezone.now()
 
         # Save the updated OTP and expiration time
         forgot_password_request.save()
@@ -152,7 +159,7 @@ class ForgotPasswordViewSet(viewsets.ModelViewSet):
         # Send the new OTP to the user
         send_mail(
             subject='Forgot Password OTP - Resent',
-            message=f"Your new OTP for password reset is: {otp}. It will expire in 5 minutes.",
+            message=f"Your password reset code is {otp}. It expires in 5 minutes. Do not share this code with anyone.",
             recipient_list=[email],
             from_email=settings.EMAIL_HOST_USER,
         )
@@ -172,7 +179,8 @@ class UserProfileViewSet(viewsets.ModelViewSet):
         Returns the profile of the currently authenticated user along with their orders.
         """
         user = request.user
-        serializer = ViewUserProfileSerializer(user, context={'request': request})
+        serializer = ViewUserProfileSerializer(
+            user, context={'request': request})
         return Response(serializer.data)
 
     @action(detail=False, methods=['post'], url_path='request-email-change')
@@ -203,7 +211,8 @@ class UserProfileViewSet(viewsets.ModelViewSet):
             existing_request.save()
         else:
             otp = random.randint(100000, 999999)
-            EmailChangeRequest.objects.create(user=user, new_email=new_email, otp=otp)
+            EmailChangeRequest.objects.create(
+                user=user, new_email=new_email, otp=otp)
 
         send_mail(
             subject='Email Change OTP',
@@ -220,13 +229,15 @@ class UserProfileViewSet(viewsets.ModelViewSet):
         Resend OTP for email change.
         """
         user = request.user
-        email_change_request = EmailChangeRequest.objects.filter(user=user).first()
+        email_change_request = EmailChangeRequest.objects.filter(
+            user=user).first()
 
         if not email_change_request:
             return Response({"error": "No pending email change request found."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Rate limiting: Allow resending OTP only after 1 minute
-        time_since_last_otp = (timezone.now() - email_change_request.created_at).total_seconds()
+        time_since_last_otp = (
+            timezone.now() - email_change_request.created_at).total_seconds()
         if time_since_last_otp < 60:
             return Response({"error": "Please wait before requesting a new OTP."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -255,7 +266,8 @@ class UserProfileViewSet(viewsets.ModelViewSet):
         user = request.user
         otp = serializer.validated_data.get('otp')
 
-        email_change_request = EmailChangeRequest.objects.filter(user=user).first()
+        email_change_request = EmailChangeRequest.objects.filter(
+            user=user).first()
         if not email_change_request:
             return Response({"error": "No pending email change request found."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -264,7 +276,8 @@ class UserProfileViewSet(viewsets.ModelViewSet):
             return Response({"error": "Invalid OTP."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if OTP has expired (5 minutes validity)
-        otp_age = (timezone.now() - email_change_request.created_at).total_seconds()
+        otp_age = (timezone.now() -
+                   email_change_request.created_at).total_seconds()
         if otp_age > 300:
             return Response({"error": "OTP has expired. Please request a new one."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -328,7 +341,8 @@ class UserProfileViewSet(viewsets.ModelViewSet):
             return Response({"error": "Incorrect password."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Fetch the latest name change request
-        name_change_request = NameChangeRequest.objects.filter(user=user).first()
+        name_change_request = NameChangeRequest.objects.filter(
+            user=user).first()
         if not name_change_request:
             return Response({"error": "No pending name change request found."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -405,7 +419,8 @@ class PasswordChangeRequestViewSet(viewsets.ModelViewSet):
             recipient_list=[user.email],
             from_email=settings.EMAIL_HOST_USER,
         )
-        PasswordChangeRequest.objects.create(user=user, otp=otp, new_password=new_password)
+        PasswordChangeRequest.objects.create(
+            user=user, otp=otp, new_password=new_password)
 
         return Response({"message": "An OTP has been sent to your email."}, status=status.HTTP_200_OK)
 
@@ -416,7 +431,8 @@ class PasswordChangeRequestViewSet(viewsets.ModelViewSet):
         """
         user = request.user
 
-        password_change_request = PasswordChangeRequest.objects.filter(user=user).first()
+        password_change_request = PasswordChangeRequest.objects.filter(
+            user=user).first()
 
         if not password_change_request:
             return Response({"error": "No pending password change request found."}, status=status.HTTP_400_BAD_REQUEST)
@@ -445,7 +461,8 @@ class PasswordChangeRequestViewSet(viewsets.ModelViewSet):
             return Response({"error": "OTP is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         user = request.user
-        password_change_request = PasswordChangeRequest.objects.filter(user=user).first()
+        password_change_request = PasswordChangeRequest.objects.filter(
+            user=user).first()
 
         if not password_change_request:
             return Response({"error": "No pending password change request found."}, status=status.HTTP_400_BAD_REQUEST)
@@ -453,7 +470,8 @@ class PasswordChangeRequestViewSet(viewsets.ModelViewSet):
         if str(password_change_request.otp) != str(otp):
             return Response({"error": "Incorrect OTP."}, status=status.HTTP_400_BAD_REQUEST)
 
-        otp_age = (timezone.now() - password_change_request.created_at).total_seconds()
+        otp_age = (timezone.now() -
+                   password_change_request.created_at).total_seconds()
         if otp_age > 300:
             return Response({"error": "OTP has expired. Please request a new one."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -470,7 +488,8 @@ class PasswordChangeRequestViewSet(viewsets.ModelViewSet):
                 token = RefreshToken(refresh_token)
                 token.blacklist()
             except Exception as e:
-                raise AuthenticationFailed('Refresh token is invalid or expired.')
+                raise AuthenticationFailed(
+                    'Refresh token is invalid or expired.')
         send_mail(
             subject='Password changed successfully',
             message=f'Password changed successfully and  you have been logged out. \n Login with your new password',
@@ -508,8 +527,9 @@ class UserSignupViewSet(viewsets.ViewSet):
                 user.save()
 
                 send_mail(
-                    subject='Verify your email',
-                    message=f'Your OTP is: {otp}',
+                    subject='Your email verification code',
+                    message=f'Use {otp} to verify your email address. This code expires in 5 minutes.',
+
                     recipient_list=[email],
                     from_email=settings.EMAIL_HOST_USER,
                 )
@@ -532,8 +552,8 @@ class UserSignupViewSet(viewsets.ViewSet):
         )
 
         send_mail(
-            subject='Verify your email',
-            message=f'Your OTP is: {otp}',
+            subject='Your email verification code',
+            message=f'Use {otp} to verify your email address. This code expires in 5 minutes.',
             recipient_list=[email],
             from_email=settings.EMAIL_HOST_USER,
         )
@@ -569,7 +589,7 @@ class UserSignupViewSet(viewsets.ViewSet):
 
         send_mail(
             subject='Signup successful',
-            message=f'You have finished the signup verification for Xexplatform. Welcome!',
+            message=f'Welcome to Deeswiftfx! Your email is verified and your account is ready to go.',
             recipient_list=[email],
             from_email=settings.EMAIL_HOST_USER,
         )
@@ -605,8 +625,8 @@ class UserSignupViewSet(viewsets.ViewSet):
         user.save()
 
         send_mail(
-            subject='Resend OTP',
-            message=f'Your OTP is: {otp}',
+            subject='Your requested OTP code',
+            message=f'Your new Deeswiftfx OTP is {otp}. If you didn’t request a new code, please ignore this email.',
             recipient_list=[email],
             from_email=settings.EMAIL_HOST_USER,
         )
@@ -647,7 +667,7 @@ class UserLoginViewSet(viewsets.ViewSet):
         # Send login success email
         send_mail(
             subject='Login Successful',
-            message=f'Welcome to XEX Trading! Your account is now active, and you’re ready to start trading.',
+            message=f'Welcome to Deeswiftfx! Your account is now active, and you’re ready to start trading.',
             recipient_list=[email],
             from_email=settings.EMAIL_HOST_USER,
             fail_silently=True
