@@ -13,7 +13,7 @@ admin.site.register(PasswordChangeRequest)
 @admin.register(User)
 class UserAdmin(DefaultUserAdmin):
     # Fields to display in the user list view
-    list_display = ('email', 'is_staff', 'is_active', 'is_verified', 'phone_number')
+    list_display = ('email', "first_name", "last_name",'is_staff', 'is_active', 'is_verified', 'phone_number', "last_login")
     list_filter = ('is_staff', 'is_superuser', 'is_active', 'is_verified')
     search_fields = ('email', 'phone_number')
     ordering = ('email',)
@@ -21,7 +21,7 @@ class UserAdmin(DefaultUserAdmin):
     # Fieldsets for viewing and editing a user
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Personal Information', {'fields': ('phone_number',)}),
+        ('Personal Information', {'fields': ('first_name', 'last_name', 'phone_number')}),
         ('Permissions', {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'is_verified', 'groups', 'user_permissions')
         }),
